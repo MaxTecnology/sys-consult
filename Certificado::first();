@@ -1,0 +1,22 @@
+[90m= [39m[34;4mApp\Models\Empresa[39;24m {#7279
+    [34mid[39m: [35m1[39m,
+    [34mrazao_social[39m: "[32mDR CONSTRUCOES LTDA[39m",
+    [34mnome_fantasia[39m: "[32mDR CONSTRUCOES LTDA[39m",
+    [34mcnpj[39m: "[32m51206405000111[39m",
+    [34minscricao_estadual[39m: "[32m240803841[39m",
+    [34minscricao_municipal[39m: [36mnull[39m,
+    [34memail[39m: [36mnull[39m,
+    [34mtelefone[39m: [36mnull[39m,
+    [34mcep[39m: "[32m57480-000[39m",
+    [34mendereco[39m: "[32mR RSD 001[39m",
+    [34mnumero[39m: "[32mR RSD 001[39m",
+    [34mcomplemento[39m: [36mnull[39m,
+    [34mbairro[39m: "[32mCENTRO[39m",
+    [34mcidade[39m: "[32mDELMIRO GOUVEIA[39m",
+    [34muf[39m: "[32mAL[39m",
+    [34mstatus[39m: "[32mativo[39m",
+    [34multima_consulta_api[39m: "[32m2025-05-30 16:19:49[39m",
+    [34mcreated_at[39m: "[32m2025-05-30 01:40:42[39m",
+    [34mupdated_at[39m: "[32m2025-05-30 16:19:49[39m",
+  }
+
