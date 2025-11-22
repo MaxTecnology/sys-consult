@@ -49,13 +49,16 @@
 2. **Fallbacks**
    - Usuário sem empresas: mostrar mensagem/CTA para solicitar acesso.
 
-## Dependências e Checklist
-- [ ] Criar migration `empresa_user` e model pivot.
-- [ ] Global scopes por usuário (exceto admin) nas entidades chave.
-- [ ] Policies/gates por recurso no Filament.
-- [ ] Ajustar alertas para usar e-mails dos usuários delegados (em vez de todos). 
-- [ ] Log de visualização em mensagens DTE.
-- [ ] Ajustar widgets/estats para filtrar por escopo.
+- ## Checklist (atualizado)
+- [x] Criar migration `empresa_user` e model pivot (owner/editor/viewer).
+- [x] Global scopes por usuário (exceto admin) em Empresas, Automação, Mailboxes, Mensagens DTE, Consultas API, Certificados, Execuções.
+- [x] Ajustar alertas para usar e-mails de usuários delegados + admin (certificados, DTE críticas, falhas).
+- [x] Policies/gates no Filament por recurso (Mensagens DTE, Automação, Consultas API, Empresas, Execuções) usando escopo/pivot.
+- [x] Menu/ações condicionais: ocultar recursos e desabilitar ações se não tiver empresa vinculada.
+- [x] Log de visualização em mensagens DTE (`dte_message_events` tipo `visualizado`, atualizar timestamps/status).
+- [x] Ajustar widgets/dashboards (DteOps, QueueHealth, etc.) para filtrar pelo escopo (global scopes aplicados).
+- [x] Seeds/atribuição inicial: comando `empresa:atribuir-usuario` para vincular usuários às empresas (role owner/editor/viewer).
+- [x] UI para delegação: RelationManagers em Empresa (usuários vinculados) e User (empresas vinculadas), restritos a admin.
 
 ## Decisões
 - Papéis por empresa: usar owner/editor/viewer na pivot (donos + escritório).

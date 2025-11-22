@@ -132,6 +132,8 @@ class ConsultaApiResource extends Resource
                     ->dateTime('d/m/Y H:i')
                     ->sortable(),
             ])
+            ->recordAction('ver_detalhes')
+            ->recordUrl(null)
             ->filters([
                 Tables\Filters\SelectFilter::make('empresa_id')
                     ->label('Empresa')
@@ -187,7 +189,7 @@ class ConsultaApiResource extends Resource
                     ->form([
                         Forms\Components\Select::make('empresa_id')
                             ->label('Empresa')
-                            ->options(Empresa::ativas()->pluck('razao_social', 'id'))
+                            ->options(fn () => Empresa::ativas()->pluck('razao_social', 'id'))
                             ->searchable()
                             ->required(),
 
@@ -207,6 +209,15 @@ class ConsultaApiResource extends Resource
                     ->action(function (array $data) {
                         $empresa = Empresa::find($data['empresa_id']);
                         $certificado = Certificado::find($data['certificado_id']);
+
+                        $user = auth()->user();
+                        if (!$user?->hasEmpresa($empresa->id)) {
+                            Notification::make()
+                                ->title('Sem permissão para esta empresa')
+                                ->danger()
+                                ->send();
+                            return;
+                        }
 
                         if (!$empresa->inscricao_estadual) {
                             Notification::make()
@@ -268,5 +279,55 @@ class ConsultaApiResource extends Resource
     public static function getNavigationBadge(): ?string
     {
         return static::getModel()::where('consultado_em', '>=', today())->count();
+    }
+
+    public static function infolist(\Filament\Infolists\Infolist $infolist): \Filament\Infolists\Infolist
+    {
+        return $infolist
+            ->schema([
+                \Filament\Infolists\Components\Section::make('Dados da Consulta')
+                    ->schema([
+                        \Filament\Infolists\Components\TextEntry::make('empresa.razao_social')->label('Empresa'),
+                        \Filament\Infolists\Components\TextEntry::make('empresa.inscricao_estadual')->label('IE'),
+                        \Filament\Infolists\Components\TextEntry::make('certificado.nome')->label('Certificado'),
+                        \Filament\Infolists\Components\TextEntry::make('tipo_consulta')->label('Tipo'),
+                        \Filament\Infolists\Components\TextEntry::make('sucesso')->label('Status')->badge()->color(fn ($state) => $state ? 'success' : 'danger')->formatStateUsing(fn ($state) => $state ? 'Sucesso' : 'Erro'),
+                        \Filament\Infolists\Components\TextEntry::make('response_code')->label('Código'),
+                        \Filament\Infolists\Components\TextEntry::make('code_message')->label('Mensagem'),
+                        \Filament\Infolists\Components\TextEntry::make('preco')->label('Preço')->money('BRL'),
+                        \Filament\Infolists\Components\TextEntry::make('tempo_resposta_ms')->label('Tempo (ms)')->formatStateUsing(fn ($state) => $state ? number_format($state).'ms' : '-'),
+                        \Filament\Infolists\Components\TextEntry::make('consultado_em')->label('Consultado em')->dateTime('d/m/Y H:i'),
+                        \Filament\Infolists\Components\TextEntry::make('request_id')->label('Request ID')->copyable(),
+                        \Filament\Infolists\Components\TextEntry::make('automacaoExecucao.id')->label('Execução #'),
+                    ])->columns(3),
+                \Filament\Infolists\Components\Section::make('Payload')
+                    ->schema([
+                        \Filament\Infolists\Components\TextEntry::make('parametro_consulta')->label('Parâmetro'),
+                        \Filament\Infolists\Components\TextEntry::make('resposta_header')
+                            ->label('Header')
+                            ->columnSpanFull()
+                            ->formatStateUsing(fn ($state) => $state ? json_encode($state, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) : '-'),
+                        \Filament\Infolists\Components\TextEntry::make('resposta_data')
+                            ->label('Data')
+                            ->columnSpanFull()
+                            ->formatStateUsing(fn ($state) => $state ? json_encode($state, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) : '-'),
+                        \Filament\Infolists\Components\TextEntry::make('errors')
+                            ->label('Errors')
+                            ->columnSpanFull()
+                            ->formatStateUsing(fn ($state) => $state ? json_encode($state, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) : '-'),
+                    ])->columns(2),
+            ]);
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        $user = auth()->user();
+        return $user && ($user->isAdmin() || $user->empresas()->exists());
+    }
+
+    public static function canViewAny(): bool
+    {
+        $user = auth()->user();
+        return $user && ($user->isAdmin() || $user->empresas()->exists());
     }
 }

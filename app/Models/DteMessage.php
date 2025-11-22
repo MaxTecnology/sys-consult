@@ -37,6 +37,8 @@ class DteMessage extends Model
         'anexos',
         'metadados',
         'requere_atencao',
+        'visualizado_por',
+        'visualizado_em',
     ];
 
     protected $casts = [
@@ -47,6 +49,7 @@ class DteMessage extends Model
         'disponivel_ate' => 'datetime',
         'primeira_visualizacao_em' => 'datetime',
         'ultima_interacao_em' => 'datetime',
+        'visualizado_em' => 'datetime',
         'anexos' => 'array',
         'metadados' => 'array',
     ];

@@ -13,6 +13,9 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Actions\Action;
 use Filament\Forms;
+use Filament\Infolists\Infolist;
+use Filament\Infolists\Components\Section as InfoSection;
+use Filament\Infolists\Components\TextEntry;
 
 class DteMessageResource extends Resource
 {
@@ -150,5 +153,60 @@ class DteMessageResource extends Resource
             'index' => Pages\ListDteMessages::route('/'),
             'view' => Pages\ViewDteMessage::route('/{record}'),
         ];
+    }
+
+    public static function infolist(Infolist $infolist): Infolist
+    {
+        return $infolist
+            ->schema([
+                InfoSection::make('Detalhes')
+                    ->columns(3)
+                    ->schema([
+                        TextEntry::make('mailbox.empresa.razao_social')->label('Empresa'),
+                        TextEntry::make('assunto')->label('Assunto')->columnSpan(2),
+                        TextEntry::make('lida_sefaz')->label('Lida SEFAZ')->badge()->color(fn ($state) => $state ? 'success' : 'warning')->formatStateUsing(fn ($state) => $state ? 'Sim' : 'Não'),
+                        TextEntry::make('status_interno')->label('Status interno')->badge()->color(fn ($state) => match($state) {
+                            'concluido' => 'success',
+                            'em_andamento' => 'info',
+                            'ignorado' => 'gray',
+                            default => 'warning'
+                        }),
+                        TextEntry::make('responsavel.name')->label('Responsável'),
+                        TextEntry::make('data_envio')->label('Envio')->dateTime('d/m/Y H:i'),
+                        TextEntry::make('data_leitura_sefaz')->label('Leitura SEFAZ')->dateTime('d/m/Y H:i'),
+                        TextEntry::make('disponivel_ate')->label('Disponível até')->date('d/m/Y'),
+                        TextEntry::make('visualizado_em')->label('Visualizado em')->dateTime('d/m/Y H:i'),
+                    ]),
+                InfoSection::make('Conteúdo')
+                    ->schema([
+                        TextEntry::make('resumo')->label('Resumo')->columnSpanFull(),
+                        TextEntry::make('conteudo_texto')->label('Conteúdo')->columnSpanFull()->default('')->visible(fn ($record) => filled($record->conteudo_texto)),
+                    ]),
+            ]);
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        $user = auth()->user();
+        return $user && ($user->isAdmin() || $user->empresas()->exists());
+    }
+
+    public static function canViewAny(): bool
+    {
+        $user = auth()->user();
+        return $user && ($user->isAdmin() || $user->empresas()->exists());
+    }
+
+    public static function canView($record): bool
+    {
+        $user = auth()->user();
+        if (!$user) {
+            return false;
+        }
+        if ($user->isAdmin()) {
+            return true;
+        }
+
+        return $record?->mailbox?->empresa_id && $user->hasEmpresa($record->mailbox->empresa_id);
     }
 }

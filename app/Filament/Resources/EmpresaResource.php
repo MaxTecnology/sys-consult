@@ -276,4 +276,35 @@ class EmpresaResource extends Resource
             'edit' => Pages\EditEmpresa::route('/{record}/edit'),
         ];
     }
+
+    public static function getRelations(): array
+    {
+        return [
+            \App\Filament\Resources\EmpresaResource\RelationManagers\UsersRelationManager::class,
+        ];
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        $user = auth()->user();
+        return $user && ($user->isAdmin() || $user->empresas()->exists());
+    }
+
+    public static function canViewAny(): bool
+    {
+        $user = auth()->user();
+        return $user && ($user->isAdmin() || $user->empresas()->exists());
+    }
+
+    public static function canView($record): bool
+    {
+        $user = auth()->user();
+        if (!$user) {
+            return false;
+        }
+        if ($user->isAdmin()) {
+            return true;
+        }
+        return $record?->id && $user->hasEmpresa($record->id);
+    }
 }

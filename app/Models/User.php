@@ -72,4 +72,21 @@ class User extends Authenticatable
     {
         return $this->belongsToMany(Empresa::class, 'empresa_user')->withPivot('role')->withTimestamps();
     }
+
+    public function empresaIds(): array
+    {
+        return $this->empresas()->pluck('empresas.id')->all();
+    }
+
+    public function hasEmpresa(int $empresaId, array $roles = ['owner', 'editor', 'viewer']): bool
+    {
+        if ($this->isAdmin()) {
+            return true;
+        }
+
+        return $this->empresas()
+            ->where('empresas.id', $empresaId)
+            ->whereIn('empresa_user.role', $roles)
+            ->exists();
+    }
 }

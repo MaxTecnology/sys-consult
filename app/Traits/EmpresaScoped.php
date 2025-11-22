@@ -33,6 +33,10 @@ trait EmpresaScoped
                 $builder->whereHas('mailbox', fn ($q) => $q->whereIn('empresa_id', $empresaIds));
             } elseif ($builder->getModel()->getTable() === 'consultas_api') {
                 $builder->whereIn('empresa_id', $empresaIds);
+            } elseif ($builder->getModel()->getTable() === 'automacao_execucoes') {
+                $builder->whereHas('empresaAutomacao', fn ($q) => $q->whereIn('empresa_id', $empresaIds));
+            } elseif ($builder->getModel()->getTable() === 'certificados') {
+                $builder->whereHas('automacoes', fn ($q) => $q->whereIn('empresa_id', $empresaIds));
             }
         });
     }

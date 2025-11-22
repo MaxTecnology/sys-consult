@@ -258,6 +258,15 @@ class EmpresaAutomacaoResource extends Resource
                     ->label('Executar Agora')
                     ->icon('heroicon-o-play')
                     ->action(function (EmpresaAutomacao $record) {
+                        $user = auth()->user();
+                        if (!$user?->hasEmpresa($record->empresa_id)) {
+                            Notification::make()
+                                ->title('Sem permissão para esta empresa')
+                                ->danger()
+                                ->send();
+                            return;
+                        }
+
                         try {
                             ProcessarAutomacaoJob::dispatch(
                                 $record->tipo_consulta,
@@ -284,7 +293,17 @@ class EmpresaAutomacaoResource extends Resource
                 Tables\Actions\Action::make('pausar')
                     ->label('Pausar')
                     ->icon('heroicon-o-pause')
-                    ->action(fn (EmpresaAutomacao $record) => $record->pausar())
+                    ->action(function (EmpresaAutomacao $record) {
+                        $user = auth()->user();
+                        if (!$user?->hasEmpresa($record->empresa_id, ['owner', 'editor'])) {
+                            Notification::make()
+                                ->title('Sem permissão para pausar esta automação')
+                                ->danger()
+                                ->send();
+                            return;
+                        }
+                        $record->pausar();
+                    })
                     ->requiresConfirmation()
                     ->visible(fn ($record) => $record->status === 'ativa')
                     ->color('warning'),
@@ -292,7 +311,17 @@ class EmpresaAutomacaoResource extends Resource
                 Tables\Actions\Action::make('reativar')
                     ->label('Reativar')
                     ->icon('heroicon-o-play')
-                    ->action(fn (EmpresaAutomacao $record) => $record->reativar())
+                    ->action(function (EmpresaAutomacao $record) {
+                        $user = auth()->user();
+                        if (!$user?->hasEmpresa($record->empresa_id, ['owner', 'editor'])) {
+                            Notification::make()
+                                ->title('Sem permissão para reativar esta automação')
+                                ->danger()
+                                ->send();
+                            return;
+                        }
+                        $record->reativar();
+                    })
                     ->visible(fn ($record) => in_array($record->status, ['pausada', 'erro']))
                     ->color('success'),
 
@@ -330,7 +359,12 @@ class EmpresaAutomacaoResource extends Resource
                         ->label('Pausar Selecionadas')
                         ->icon('heroicon-o-pause')
                         ->action(function ($records) {
-                            $records->each->pausar();
+                            $user = auth()->user();
+                            $records->each(function ($record) use ($user) {
+                                if ($user?->hasEmpresa($record->empresa_id, ['owner', 'editor'])) {
+                                    $record->pausar();
+                                }
+                            });
                         })
                         ->requiresConfirmation()
                         ->color('warning'),
@@ -339,7 +373,12 @@ class EmpresaAutomacaoResource extends Resource
                         ->label('Reativar Selecionadas')
                         ->icon('heroicon-o-play')
                         ->action(function ($records) {
-                            $records->each->reativar();
+                            $user = auth()->user();
+                            $records->each(function ($record) use ($user) {
+                                if ($user?->hasEmpresa($record->empresa_id, ['owner', 'editor'])) {
+                                    $record->reativar();
+                                }
+                            });
                         })
                         ->color('success'),
 
@@ -360,5 +399,17 @@ class EmpresaAutomacaoResource extends Resource
     public static function getNavigationBadge(): ?string
     {
         return static::getModel()::ativas()->count();
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        $user = auth()->user();
+        return $user && ($user->isAdmin() || $user->empresas()->exists());
+    }
+
+    public static function canViewAny(): bool
+    {
+        $user = auth()->user();
+        return $user && ($user->isAdmin() || $user->empresas()->exists());
     }
 }
