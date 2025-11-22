@@ -3,7 +3,9 @@
 namespace App\Jobs;
 
 use App\Models\ConsultaApi;
+use App\Services\DteMessageSyncService;
 use App\Services\InfoSimplesService;
+use Illuminate\Support\Facades\Log;
 
 class ProcessarCaixaPostalJob extends BaseConsultaJob
 {
@@ -32,8 +34,11 @@ class ProcessarCaixaPostalJob extends BaseConsultaJob
         try {
             $consulta = $service->consultarEmpresaCaixaPostal(
                 $this->automacao->empresa,
-                $this->automacao->certificado
+                $this->automacao->certificado,
+                $this->requestId ?? null
             );
+
+            $this->sincronizarMensagensDte($consulta);
 
             // Adicionar métricas específicas da caixa postal
             if ($consulta->sucesso && $consulta->resposta_data) {
@@ -45,6 +50,26 @@ class ProcessarCaixaPostalJob extends BaseConsultaJob
         } catch (\Exception $e) {
             $this->execucao->adicionarMetrica('erro_consulta_api', $e->getMessage());
             throw $e;
+        }
+    }
+
+    private function sincronizarMensagensDte(ConsultaApi $consulta): void
+    {
+        try {
+            $syncService = app(DteMessageSyncService::class);
+            $resultado = $syncService->syncFromConsulta($consulta, $this->execucao ?? null);
+
+            $this->execucao?->adicionarMetrica('dte_mensagens_processadas', $resultado['processadas'] ?? 0);
+            $this->execucao?->adicionarMetrica('dte_mensagens_importadas', $resultado['importadas'] ?? 0);
+            $this->execucao?->adicionarMetrica('dte_mensagens_atualizadas', $resultado['atualizadas'] ?? 0);
+        } catch (\Throwable $e) {
+            Log::error('Falha ao sincronizar mensagens DTE após consulta', [
+                'consulta_id' => $consulta->id,
+                'execucao_id' => $this->execucao?->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            $this->execucao?->adicionarMetrica('dte_sync_error', $e->getMessage());
         }
     }
 

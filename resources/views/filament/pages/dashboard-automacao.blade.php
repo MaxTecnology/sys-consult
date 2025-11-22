@@ -63,6 +63,26 @@
         </div>
     </div>
 
+    {{-- Saúde DTE --}}
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Mensagens críticas</p>
+            <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ $saudeDte['mensagens_criticas'] }}</p>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Mensagens não lidas</p>
+            <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ $saudeDte['mensagens_nao_lidas'] }}</p>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Certificados vencendo (30d)</p>
+            <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ $saudeDte['certificados_vencendo'] }}</p>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Empresas sem consulta 7d</p>
+            <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ $saudeDte['empresas_sem_consulta'] }}</p>
+        </div>
+    </div>
+
     {{-- Seção de Métricas --}}
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Execuções Hoje -->

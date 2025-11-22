@@ -53,31 +53,46 @@ class CertificadoResource extends Resource
                     ->schema([
                         Forms\Components\Textarea::make('pkcs12_cert_encrypted')
                             ->label('Certificado PKCS12 Criptografado')
-                            ->required()
+                            ->required(fn (?Certificado $record) => $record === null)
+                            ->dehydrated(fn (?string $state, ?Certificado $record) => $record === null || filled($state))
                             ->rows(4)
                             ->placeholder('Cole aqui o certificado .pfx criptografado em Base64')
-                            ->helperText('Certificado digital em formato .pfx convertido para Base64 e criptografado com AES256'),
+                            ->helperText('Certificado digital em formato .pfx convertido para Base64. Deixe em branco ao editar para manter o valor atual.')
+                            ->hint(fn (?Certificado $record) => $record && $record->pkcs12_cert_encrypted ? 'Valor já configurado' : 'Nenhum valor configurado')
+                            ->hintColor(fn (?Certificado $record) => $record && $record->pkcs12_cert_encrypted ? 'success' : 'warning'),
 
                         Forms\Components\TextInput::make('pkcs12_pass_encrypted')
                             ->label('Senha do Certificado Criptografada')
-                            ->required()
+                            ->required(fn (?Certificado $record) => $record === null)
                             ->password()
+                            ->revealable()
+                            ->dehydrated(fn (?string $state, ?Certificado $record) => $record === null || filled($state))
                             ->placeholder('Senha criptografada do certificado')
-                            ->helperText('Senha do certificado digital criptografada com AES256'),
+                            ->helperText('Senha do certificado digital. Deixe em branco ao editar para manter o valor atual.')
+                            ->hint(fn (?Certificado $record) => $record && $record->pkcs12_pass_encrypted ? 'Valor já configurado' : 'Nenhum valor configurado')
+                            ->hintColor(fn (?Certificado $record) => $record && $record->pkcs12_pass_encrypted ? 'success' : 'warning'),
 
                         Forms\Components\TextInput::make('token_api')
                             ->label('Token da API InfoSimples')
-                            ->required()
+                            ->required(fn (?Certificado $record) => $record === null)
                             ->password()
+                            ->revealable()
+                            ->dehydrated(fn (?string $state, ?Certificado $record) => $record === null || filled($state))
                             ->placeholder('Token de acesso da InfoSimples')
-                            ->helperText('Token fornecido pela InfoSimples para acesso às consultas'),
+                            ->helperText('Token fornecido pela InfoSimples. Deixe em branco ao editar para manter o valor atual.')
+                            ->hint(fn (?Certificado $record) => $record && $record->token_api ? 'Valor já configurado' : 'Nenhum valor configurado')
+                            ->hintColor(fn (?Certificado $record) => $record && $record->token_api ? 'success' : 'warning'),
 
                         Forms\Components\TextInput::make('chave_criptografia')
                             ->label('Chave de Criptografia')
-                            ->required()
+                            ->required(fn (?Certificado $record) => $record === null)
                             ->password()
+                            ->revealable()
+                            ->dehydrated(fn (?string $state, ?Certificado $record) => $record === null || filled($state))
                             ->placeholder('Chave usada para criptografar/descriptografar')
-                            ->helperText('Chave AES256 usada para criptografar os dados sensíveis'),
+                            ->helperText('Chave AES256 usada para criptografar os dados sensíveis. Em edição, deixe vazio para manter.')
+                            ->hint(fn (?Certificado $record) => $record && $record->chave_criptografia ? 'Valor já configurado' : 'Nenhum valor configurado')
+                            ->hintColor(fn (?Certificado $record) => $record && $record->chave_criptografia ? 'success' : 'warning'),
                     ])
                     ->columns(1),
 
@@ -102,6 +117,14 @@ class CertificadoResource extends Resource
                     ->label('Nome')
                     ->searchable()
                     ->sortable(),
+
+                Tables\Columns\BadgeColumn::make('ativo')
+                    ->label('Ativo')
+                    ->getStateUsing(fn ($record) => $record->ativo ? 'Sim' : 'Não')
+                    ->colors(fn ($record) => [
+                        'success' => $record->ativo,
+                        'danger' => !$record->ativo,
+                    ]),
 
                 Tables\Columns\BadgeColumn::make('status')
                     ->label('Status')
@@ -152,11 +175,9 @@ class CertificadoResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ])
             ->defaultSort('created_at', 'desc');

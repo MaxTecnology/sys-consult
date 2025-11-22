@@ -8,13 +8,16 @@ use App\Models\AutomacaoTipo;
 use App\Models\Empresa;
 use App\Models\Certificado;
 use App\Jobs\ProcessarAutomacaoJob;
+use App\Models\AutomacaoTipo as Tipo;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Validation\Rule;
 
 class EmpresaAutomacaoResource extends Resource
 {
@@ -45,11 +48,34 @@ class EmpresaAutomacaoResource extends Resource
 
                         Forms\Components\Select::make('tipo_consulta')
                             ->label('Tipo de Consulta')
-                            ->options(AutomacaoTipo::ativas()->habilitadas()->pluck('nome_exibicao', 'tipo_consulta'))
+                            ->options(fn () => AutomacaoTipo::ativas()->habilitadas()->pluck('nome_exibicao', 'tipo_consulta'))
+                            ->preload()
+                            ->searchable()
                             ->required()
                             ->reactive()
+                            ->rules([
+                                fn (Get $get, ?EmpresaAutomacao $record) => Rule::unique('empresa_automacao', 'tipo_consulta')
+                                    ->where(fn ($query) => $query->where('empresa_id', $get('empresa_id')))
+                                    ->ignore($record?->id),
+                            ])
+                            ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
+                                $exists = EmpresaAutomacao::where('empresa_id', $get('empresa_id'))
+                                    ->where('tipo_consulta', $state)
+                                    ->when($get('id'), fn ($q) => $q->where('id', '!=', $get('id')))
+                                    ->exists();
+
+                                if ($exists) {
+                                    Notification::make()
+                                        ->title('Tipo de consulta já configurado para esta empresa')
+                                        ->body('Escolha outro tipo ou edite a automação existente.')
+                                        ->danger()
+                                        ->send();
+
+                                    $set('tipo_consulta', null);
+                                }
+                            })
                             ->afterStateUpdated(fn ($state, Forms\Set $set) =>
-                            $set('configuracoes_tipo', AutomacaoTipo::where('tipo_consulta', $state)->first()?->toArray())
+                                $set('configuracoes_tipo', AutomacaoTipo::where('tipo_consulta', $state)->first()?->toArray())
                             ),
 
                         Forms\Components\Select::make('certificado_id')
@@ -177,6 +203,30 @@ class EmpresaAutomacaoResource extends Resource
                         $cert = $record->certificado;
                         return $cert ? "Válido até: " . $cert->validade?->format('d/m/Y') : '';
                     }),
+
+                Tables\Columns\BadgeColumn::make('ativo')
+                    ->label('Ativo')
+                    ->getStateUsing(fn ($record) => $record->ativo ? 'Sim' : 'Não')
+                    ->colors(fn ($record) => [
+                        'success' => $record->ativo,
+                        'danger' => !$record->ativo,
+                    ]),
+
+                Tables\Columns\TextColumn::make('mensagens_pendentes')
+                    ->label('Msgs pendentes')
+                    ->getStateUsing(function ($record) {
+                        $empresa = $record->empresa;
+                        if (!$empresa) {
+                            return 0;
+                        }
+                        $mailboxes = $empresa->dteMailboxes;
+                        if (!$mailboxes) {
+                            return 0;
+                        }
+                        return $mailboxes->sum(fn ($m) => $m->mensagensNaoLidas()->count());
+                    })
+                    ->color(fn ($state) => $state > 0 ? 'danger' : 'success')
+                    ->icon(fn ($state) => $state > 0 ? 'heroicon-m-exclamation-triangle' : null),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
@@ -194,6 +244,10 @@ class EmpresaAutomacaoResource extends Resource
                 Tables\Filters\Filter::make('ativas')
                     ->label('Apenas Ativas')
                     ->query(fn (Builder $query) => $query->ativas()),
+
+                Tables\Filters\Filter::make('apenas_ativas_soft')
+                    ->label('Somente ativo (flag)')
+                    ->query(fn (Builder $query) => $query->where('ativo', true)),
 
                 Tables\Filters\Filter::make('prontas')
                     ->label('Prontas para Execução')
@@ -243,7 +297,6 @@ class EmpresaAutomacaoResource extends Resource
                     ->color('success'),
 
                 Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
             ])
             ->headerActions([
                 Tables\Actions\Action::make('executar_todas_prontas')
@@ -290,7 +343,6 @@ class EmpresaAutomacaoResource extends Resource
                         })
                         ->color('success'),
 
-                    Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ])
             ->defaultSort('proxima_execucao', 'asc');

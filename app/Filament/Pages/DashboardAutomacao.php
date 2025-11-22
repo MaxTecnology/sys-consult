@@ -7,6 +7,9 @@ use App\Models\EmpresaAutomacao;
 use App\Models\AutomacaoExecucao;
 use App\Models\ConsultaApi;
 use App\Jobs\ProcessarAutomacaoJob;
+use App\Models\DteMessage;
+use App\Models\Certificado;
+use App\Models\Empresa;
 use Filament\Pages\Page;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
@@ -62,6 +65,7 @@ class DashboardAutomacao extends Page
             'proximasExecucoes' => $this->getProximasExecucoes(),
             'ultimasExecucoes' => $this->getUltimasExecucoes(),
             'automacoesComErro' => $this->getAutomacoesComErro(),
+            'saudeDte' => $this->getSaudeDte(),
         ];
     }
 
@@ -75,6 +79,22 @@ class DashboardAutomacao extends Page
             'sucesso_hoje' => AutomacaoExecucao::hoje()->sucesso()->count(),
             'erro_hoje' => AutomacaoExecucao::hoje()->erro()->count(),
             'custo_hoje' => ConsultaApi::whereDate('consultado_em', today())->sum('preco') ?? 0,
+        ];
+    }
+
+    private function getSaudeDte(): array
+    {
+        return [
+            'mensagens_criticas' => DteMessage::where('requere_atencao', true)->count(),
+            'mensagens_nao_lidas' => DteMessage::where('lida_sefaz', false)->count(),
+            'certificados_vencendo' => Certificado::ativos()
+                ->whereNotNull('validade')
+                ->where('validade', '<=', now()->addDays(30))
+                ->count(),
+            'empresas_sem_consulta' => Empresa::where(function ($q) {
+                $q->whereNull('ultima_consulta_api')
+                  ->orWhere('ultima_consulta_api', '<', now()->subDays(7));
+            })->count(),
         ];
     }
 

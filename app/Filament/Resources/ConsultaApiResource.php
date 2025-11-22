@@ -6,6 +6,7 @@ use App\Filament\Resources\ConsultaApiResource\Pages;
 use App\Models\ConsultaApi;
 use App\Models\Empresa;
 use App\Models\Certificado;
+use App\Services\DteMessageSyncService;
 use App\Services\InfoSimplesService;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -81,6 +82,15 @@ class ConsultaApiResource extends Resource
                     ->label('IE')
                     ->searchable()
                     ->sortable(),
+                Tables\Columns\TextColumn::make('request_id')
+                    ->label('Request ID')
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->copyable()
+                    ->limit(30),
+
+                Tables\Columns\TextColumn::make('automacaoExecucao.id')
+                    ->label('Execução #')
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('certificado.nome')
                     ->label('Certificado')
@@ -169,7 +179,6 @@ class ConsultaApiResource extends Resource
                     ->visible(fn (ConsultaApi $record) => !empty($record->site_receipts))
                     ->color('success'),
 
-                Tables\Actions\DeleteAction::make(),
             ])
             ->headerActions([
                 Tables\Actions\Action::make('nova_consulta')
@@ -209,14 +218,18 @@ class ConsultaApiResource extends Resource
                         }
 
                         $service = new InfoSimplesService();
+                        $syncService = app(DteMessageSyncService::class);
 
                         try {
                             $consulta = $service->consultarEmpresaCaixaPostal($empresa, $certificado);
+                            $resultadoSync = $syncService->syncFromConsulta($consulta);
+                            $importadas = $resultadoSync['importadas'] ?? 0;
+                            $atualizadas = $resultadoSync['atualizadas'] ?? 0;
 
                             if ($consulta->sucesso) {
                                 Notification::make()
                                     ->title('Consulta realizada com sucesso!')
-                                    ->body("Código: {$consulta->response_code} - {$consulta->code_message}")
+                                    ->body("Código: {$consulta->response_code} - {$consulta->code_message} | Mensagens importadas: {$importadas} / atualizadas: {$atualizadas}")
                                     ->success()
                                     ->send();
                             } else {
@@ -238,7 +251,6 @@ class ConsultaApiResource extends Resource
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ])
             ->defaultSort('consultado_em', 'desc');

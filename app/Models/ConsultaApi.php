@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ConsultaApi extends Model
 {
@@ -22,6 +23,7 @@ class ConsultaApi extends Model
         'site_receipts',
         'response_code',
         'code_message',
+        'request_id',
         'errors',
         'sucesso',
         'preco',
@@ -52,6 +54,11 @@ class ConsultaApi extends Model
     public function automacaoExecucao(): BelongsTo
     {
         return $this->belongsTo(AutomacaoExecucao::class);
+    }
+
+    public function dteMessages(): HasMany
+    {
+        return $this->hasMany(DteMessage::class);
     }
 
     // Scope para consultas bem-sucedidas

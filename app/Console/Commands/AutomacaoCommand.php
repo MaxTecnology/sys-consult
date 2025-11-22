@@ -11,7 +11,8 @@ class AutomacaoCommand extends Command
     protected $signature = 'automacao:executar
                           {--tipo= : Tipo específico de consulta}
                           {--empresa= : ID específico da empresa}
-                          {--dry-run : Apenas simular, não executar}';
+                          {--dry-run : Apenas simular, não executar}
+                          {--force : Não pedir confirmação antes de despachar}';
 
     protected $description = 'Executa automações de consultas programadas';
 
@@ -22,6 +23,18 @@ class AutomacaoCommand extends Command
         $dryRun = $this->option('dry-run');
 
         $this->info('Iniciando verificação de automações...');
+
+        // Evitar executar com certificado inválido
+        $certificadosInvalidos = \App\Models\Certificado::where(function ($q) {
+            $q->where('status', 'inativo')
+                ->orWhere(function ($q2) {
+                    $q2->whereNotNull('validade')->where('validade', '<=', now());
+                });
+        })->count();
+
+        if ($certificadosInvalidos > 0) {
+            $this->warn("⚠️ Existem {$certificadosInvalidos} certificados inativos ou vencidos. Automações podem falhar.");
+        }
 
         // Buscar automações prontas
         $query = EmpresaAutomacao::with(['empresa', 'automacaoTipo'])
@@ -67,10 +80,12 @@ class AutomacaoCommand extends Command
             return Command::SUCCESS;
         }
 
-        // Confirmar execução
-        if (!$this->confirm('Deseja prosseguir com a execução?')) {
-            $this->info('❌ Execução cancelada pelo usuário');
-            return Command::SUCCESS;
+        // Confirmar execução, exceto se forçado (scheduler/flag)
+        if (!$this->option('force')) {
+            if (!$this->confirm('Deseja prosseguir com a execução?')) {
+                $this->info('❌ Execução cancelada pelo usuário');
+                return Command::SUCCESS;
+            }
         }
 
         // Despachar job coordenador

@@ -14,7 +14,7 @@ Artisan::command('inspire', function () {
 // ========================================
 
 // Executar automações a cada 5 minutos
-Schedule::command('automacao:executar')
+Schedule::command('automacao:executar --force')
     ->everyFiveMinutes()
     ->withoutOverlapping(10) // Evita execuções simultâneas, timeout 10min
     ->runInBackground()
@@ -33,11 +33,29 @@ Schedule::command('certificados:verificar-vencimento')
     ->appendOutputTo(storage_path('logs/certificados.log'))
     ->description('Verificar certificados próximos do vencimento');
 
+// Alerta de certificados vencendo - todo dia às 08h05
+Schedule::command('certificados:alerta-vencimento')
+    ->dailyAt('08:05')
+    ->appendOutputTo(storage_path('logs/certificados-alerta.log'))
+    ->description('Enviar alertas por e-mail de certificados vencidos/vencendo');
+
 // Reativar automações pausadas por erro - a cada hora
 Schedule::command('automacao:reativar-pausadas')
     ->hourly()
     ->appendOutputTo(storage_path('logs/automacao-reativacao.log'))
     ->description('Reativar automações pausadas por erro');
+
+// Alerta de mensagens críticas DTE - a cada hora
+Schedule::command('dte:alert-critical')
+    ->hourly()
+    ->appendOutputTo(storage_path('logs/dte-alertas.log'))
+    ->description('Enviar alertas por e-mail de mensagens críticas/não lidas');
+
+// Alerta de falhas de automação - a cada hora
+Schedule::command('automacao:alerta-falhas')
+    ->hourly()
+    ->appendOutputTo(storage_path('logs/automacao-falhas.log'))
+    ->description('Enviar alertas por e-mail de execuções com erro/timeout');
 
 // Limpeza de jobs failed antigos - semanal
 Schedule::command('queue:flush')

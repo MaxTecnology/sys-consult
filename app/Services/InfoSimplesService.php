@@ -8,6 +8,7 @@ use App\Models\ConsultaApi;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Exception;
+use App\Support\LogSanitizer;
 
 class InfoSimplesService
 {
@@ -69,7 +70,14 @@ class InfoSimplesService
             ];
 
         } catch (Exception $e) {
-            Log::error('Erro ao consultar caixa postal: ' . $e->getMessage());
+            Log::error('Erro ao consultar caixa postal: ' . $e->getMessage(), [
+                'request_id' => request()->header('X-Request-Id'),
+                'certificado_id' => $certificado->id ?? null,
+                'empresa_id' => $empresa->id ?? null,
+                'detalhes' => LogSanitizer::sanitize([
+                    'status' => 'exception',
+                ]),
+            ]);
 
             return [
                 'sucesso' => false,
@@ -88,7 +96,7 @@ class InfoSimplesService
     /**
      * Salva o resultado da consulta
      */
-    public function salvarConsulta(Empresa $empresa, Certificado $certificado, string $tipoConsulta, array $resultado): ConsultaApi
+    public function salvarConsulta(Empresa $empresa, Certificado $certificado, string $tipoConsulta, array $resultado, ?string $requestId = null): ConsultaApi
     {
         return ConsultaApi::create([
             'empresa_id' => $empresa->id,
@@ -100,6 +108,7 @@ class InfoSimplesService
             'site_receipts' => $resultado['site_receipts'],
             'response_code' => $resultado['response_code'],
             'code_message' => $resultado['code_message'],
+            'request_id' => $requestId,
             'errors' => $resultado['errors'],
             'sucesso' => $resultado['sucesso'],
             'preco' => $resultado['preco'],
@@ -111,10 +120,12 @@ class InfoSimplesService
     /**
      * Consulta completa (consulta + salva)
      */
-    public function consultarEmpresaCaixaPostal(Empresa $empresa, Certificado $certificado): ConsultaApi
+    public function consultarEmpresaCaixaPostal(Empresa $empresa, Certificado $certificado, ?string $requestId = null): ConsultaApi
     {
+        $requestId = $requestId ?: request()->header('X-Request-Id') ?: (string) \Illuminate\Support\Str::orderedUuid();
+
         $resultado = $this->consultarCaixaPostal($empresa, $certificado);
-        $consulta = $this->salvarConsulta($empresa, $certificado, 'caixa-postal', $resultado);
+        $consulta = $this->salvarConsulta($empresa, $certificado, 'caixa-postal', $resultado, $requestId);
 
         // Atualiza timestamp da última consulta na empresa
         $empresa->update(['ultima_consulta_api' => now()]);

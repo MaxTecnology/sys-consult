@@ -12,6 +12,8 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
+use App\Support\LogSanitizer;
 
 abstract class BaseConsultaJob implements ShouldQueue
 {
@@ -23,6 +25,7 @@ abstract class BaseConsultaJob implements ShouldQueue
 
     protected EmpresaAutomacao $automacao;
     protected AutomacaoExecucao $execucao;
+    protected string $requestId;
 
     public function __construct(public int $automacaoId)
     {
@@ -33,6 +36,9 @@ abstract class BaseConsultaJob implements ShouldQueue
     public function handle(): void
     {
         try {
+            $this->requestId = (string) Str::orderedUuid();
+            Log::withContext(['request_id' => $this->requestId]);
+
             $this->carregarAutomacao();
             $this->validarPreRequisitos();
             $this->aplicarRateLimit();
@@ -113,6 +119,7 @@ abstract class BaseConsultaJob implements ShouldQueue
             'tentativa_numero' => $this->attempts(),
             'job_id' => $this->job->getJobId(),
             'queue_name' => 'default',
+            'request_id' => $this->requestId,
         ]);
     }
 
@@ -142,7 +149,12 @@ abstract class BaseConsultaJob implements ShouldQueue
             'error' => $e->getMessage(),
             'empresa' => $this->automacao->empresa->razao_social ?? 'N/A',
             'tipo' => $this->automacao->tipo_consulta ?? 'N/A',
-            'tentativa' => $this->attempts()
+            'tentativa' => $this->attempts(),
+            'request_id' => $this->requestId ?? null,
+            'detalhes' => LogSanitizer::sanitize([
+                'automacao_id' => $this->automacaoId,
+                'job_id' => $this->job?->getJobId(),
+            ]),
         ]);
 
         // Marcar execução como erro

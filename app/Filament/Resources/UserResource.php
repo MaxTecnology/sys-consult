@@ -3,15 +3,12 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\UserResource\Pages;
-use App\Filament\Resources\UserResource\RelationManagers;
 use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class UserResource extends Resource
 {
@@ -30,10 +27,23 @@ class UserResource extends Resource
                     ->email()
                     ->required()
                     ->maxLength(255),
+                Forms\Components\Select::make('role')
+                    ->label('Perfil')
+                    ->options([
+                        'admin' => 'Admin',
+                        'user' => 'Usuário',
+                    ])
+                    ->default('user')
+                    ->required(),
+                Forms\Components\Toggle::make('ativo')
+                    ->label('Ativo')
+                    ->default(true),
                 Forms\Components\DateTimePicker::make('email_verified_at'),
                 Forms\Components\TextInput::make('password')
                     ->password()
-                    ->required()
+                    ->revealable()
+                    ->required(fn (?User $record) => $record === null)
+                    ->dehydrated(fn (?string $state, ?User $record) => $record === null || filled($state))
                     ->maxLength(255),
             ]);
     }
@@ -46,6 +56,19 @@ class UserResource extends Resource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('email')
                     ->searchable(),
+                Tables\Columns\BadgeColumn::make('role')
+                    ->label('Perfil')
+                    ->colors([
+                        'warning' => 'user',
+                        'primary' => 'admin',
+                    ]),
+                Tables\Columns\BadgeColumn::make('ativo')
+                    ->label('Status')
+                    ->getStateUsing(fn (User $record) => $record->ativo ? 'Ativo' : 'Inativo')
+                    ->colors(fn (User $record) => [
+                        'success' => $record->ativo,
+                        'danger' => !$record->ativo,
+                    ]),
                 Tables\Columns\TextColumn::make('email_verified_at')
                     ->dateTime()
                     ->sortable(),
@@ -59,14 +82,18 @@ class UserResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+                Tables\Filters\SelectFilter::make('ativo')
+                    ->label('Status')
+                    ->options([
+                        1 => 'Ativo',
+                        0 => 'Inativo',
+                    ]),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ]);
     }

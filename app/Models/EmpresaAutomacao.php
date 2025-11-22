@@ -7,10 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Carbon\Carbon;
+use App\Traits\LogsModelChanges;
 
 class EmpresaAutomacao extends Model
 {
-    use HasFactory;
+    use HasFactory, LogsModelChanges;
 
     protected $table = 'empresa_automacao';
 
@@ -31,6 +32,7 @@ class EmpresaAutomacao extends Model
         'pausada_ate',
         'configuracoes_extras',
         'observacoes',
+        'ativo',
         'criado_por',
         'atualizado_por',
     ];
@@ -42,6 +44,7 @@ class EmpresaAutomacao extends Model
         'ultima_execucao' => 'datetime',
         'pausada_ate' => 'datetime',
         'configuracoes_extras' => 'array',
+        'ativo' => 'boolean',
     ];
 
     // Relacionamentos
@@ -187,24 +190,43 @@ class EmpresaAutomacao extends Model
 
     private function calcularProximaSemanal(Carbon $agora, int $hora, int $minuto): Carbon
     {
-        $diaSemana = $this->dia_semana ?: 2; // Default: Segunda
-        $proxima = $agora->copy()->next($diaSemana)->setTime($hora, $minuto);
+        $diaSemana = $this->dia_semana ?: Carbon::MONDAY; // Default: Segunda
+        $dias = [
+            1 => 'Sunday',
+            2 => 'Monday',
+            3 => 'Tuesday',
+            4 => 'Wednesday',
+            5 => 'Thursday',
+            6 => 'Friday',
+            7 => 'Saturday',
+        ];
 
-        // Se é o mesmo dia da semana mas ainda não passou o horário
-        if ($agora->dayOfWeek === $diaSemana && $agora->format('H:i') < "$hora:$minuto") {
-            $proxima = $agora->copy()->setTime($hora, $minuto);
+        // Se o dia atual é o mesmo e horário ainda não passou, usa hoje
+        if ($agora->dayOfWeek === $diaSemana && $agora->format('H:i') < sprintf('%02d:%02d', $hora, $minuto)) {
+            return $agora->copy()->setTime($hora, $minuto);
         }
 
-        return $proxima;
+        $weekdayName = $dias[$diaSemana] ?? 'Monday';
+        return Carbon::createFromTimestamp($agora->timestamp)->next($weekdayName)->setTime($hora, $minuto);
     }
 
     private function calcularProximaQuinzenal(Carbon $agora, int $hora, int $minuto): Carbon
     {
-        $diaSemana = $this->dia_semana ?: 2;
-        $proxima = $agora->copy()->next($diaSemana)->setTime($hora, $minuto);
+        $diaSemana = $this->dia_semana ?: Carbon::MONDAY;
+        $dias = [
+            1 => 'Sunday',
+            2 => 'Monday',
+            3 => 'Tuesday',
+            4 => 'Wednesday',
+            5 => 'Thursday',
+            6 => 'Friday',
+            7 => 'Saturday',
+        ];
+        $weekdayName = $dias[$diaSemana] ?? 'Monday';
+        $proxima = Carbon::createFromTimestamp($agora->timestamp)->next($weekdayName)->setTime($hora, $minuto);
 
         // Se é o mesmo dia da semana mas ainda não passou o horário
-        if ($agora->dayOfWeek === $diaSemana && $agora->format('H:i') < "$hora:$minuto") {
+        if ($agora->dayOfWeek === $diaSemana && $agora->format('H:i') < sprintf('%02d:%02d', $hora, $minuto)) {
             $proxima = $agora->copy()->setTime($hora, $minuto);
         } else {
             // Adicionar mais uma semana para ficar quinzenal
@@ -280,5 +302,10 @@ class EmpresaAutomacao extends Model
             'status' => 'pausada',
             'pausada_ate' => $ate ?: now()->addWeek()
         ]);
+    }
+
+    public function getLoggableAttributes(): array
+    {
+        return ['status', 'ativa', 'ativo', 'proxima_execucao', 'ultima_execucao'];
     }
 }

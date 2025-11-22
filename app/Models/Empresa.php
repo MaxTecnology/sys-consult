@@ -5,10 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Traits\LogsModelChanges;
 
 class Empresa extends Model
 {
-    use HasFactory;
+    use HasFactory, LogsModelChanges;
 
     protected $fillable = [
         'razao_social',
@@ -26,12 +27,22 @@ class Empresa extends Model
         'cidade',
         'uf',
         'status',
+        'ativo',
         'ultima_consulta_api',
     ];
 
     protected $casts = [
         'ultima_consulta_api' => 'datetime',
+        'ativo' => 'boolean',
     ];
+
+    protected static function booted(): void
+    {
+        static::saving(function (Empresa $empresa) {
+            // Manter consistência entre status (enum legado) e flag ativo
+            $empresa->status = $empresa->ativo ? 'ativo' : 'inativo';
+        });
+    }
 
     public function consultasApi(): HasMany
     {
@@ -46,6 +57,16 @@ class Empresa extends Model
     public function automacoesAtivas(): HasMany
     {
         return $this->hasMany(EmpresaAutomacao::class)->ativas();
+    }
+
+    public function activityLogs(): HasMany
+    {
+        return $this->hasMany(UserActivityLog::class, 'user_id');
+    }
+
+    public function dteMailboxes(): HasMany
+    {
+        return $this->hasMany(DteMailbox::class);
     }
 
     public function ultimaConsultaApi()
@@ -68,6 +89,17 @@ class Empresa extends Model
     // Scope para empresas ativas
     public function scopeAtivas($query)
     {
-        return $query->where('status', 'ativo');
+        return $query->where('status', 'ativo')->where('ativo', true);
+    }
+
+    // Scope para ativo boolean (preferível para desativar sem deletar)
+    public function scopeAtivo($query)
+    {
+        return $query->where('ativo', true);
+    }
+
+    public function getLoggableAttributes(): array
+    {
+        return ['razao_social', 'cnpj', 'status', 'ativo', 'ultima_consulta_api'];
     }
 }

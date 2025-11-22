@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\EmpresaResource\Pages;
 use App\Models\Empresa;
 use App\Services\ConsultaEmpresaService;
+use App\Services\DteMessageSyncService;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -102,14 +103,10 @@ class EmpresaResource extends Resource
 
                 Forms\Components\Section::make('Status')
                     ->schema([
-                        Forms\Components\Select::make('status')
-                            ->label('Status')
-                            ->options([
-                                'ativo' => 'Ativo',
-                                'inativo' => 'Inativo',
-                            ])
-                            ->default('ativo')
-                            ->required(),
+                        Forms\Components\Toggle::make('ativo')
+                            ->label('Ativo (soft)')
+                            ->helperText('Desative para esconder sem remover registros.')
+                            ->default(true),
 
                         Forms\Components\DateTimePicker::make('ultima_consulta_api')
                             ->label('Última Consulta API')
@@ -153,11 +150,12 @@ class EmpresaResource extends Resource
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\BadgeColumn::make('status')
-                    ->label('Status')
-                    ->colors([
-                        'success' => 'ativo',
-                        'danger' => 'inativo',
+                Tables\Columns\BadgeColumn::make('ativo')
+                    ->label('Ativo')
+                    ->getStateUsing(fn ($record) => $record->ativo ? 'Sim' : 'Não')
+                    ->colors(fn ($record) => [
+                        'success' => $record->ativo,
+                        'danger' => !$record->ativo,
                     ]),
 
                 Tables\Columns\TextColumn::make('ultima_consulta_api')
@@ -166,11 +164,11 @@ class EmpresaResource extends Resource
                     ->sortable(),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('status')
+                Tables\Filters\SelectFilter::make('ativo')
                     ->label('Status')
                     ->options([
-                        'ativo' => 'Ativo',
-                        'inativo' => 'Inativo',
+                        1 => 'Ativo',
+                        0 => 'Inativo',
                     ]),
 
                 Tables\Filters\SelectFilter::make('uf')
@@ -212,14 +210,18 @@ class EmpresaResource extends Resource
 
                         $certificado = \App\Models\Certificado::find($data['certificado_id']);
                         $service = new \App\Services\InfoSimplesService();
+                        $syncService = app(DteMessageSyncService::class);
 
                         try {
                             $consulta = $service->consultarEmpresaCaixaPostal($record, $certificado);
+                            $resultadoSync = $syncService->syncFromConsulta($consulta);
+                            $importadas = $resultadoSync['importadas'] ?? 0;
+                            $atualizadas = $resultadoSync['atualizadas'] ?? 0;
 
                             if ($consulta->sucesso) {
                                 Notification::make()
                                     ->title('Consulta realizada com sucesso!')
-                                    ->body("Código: {$consulta->response_code}")
+                                    ->body("Código: {$consulta->response_code} | Mensagens importadas: {$importadas} / atualizadas: {$atualizadas}")
                                     ->success()
                                     ->send();
                             } else {
@@ -240,12 +242,9 @@ class EmpresaResource extends Resource
                     ->color('info'),
 
                 Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-
                     Tables\Actions\BulkAction::make('consultar_api_bulk')
                         ->label('Consultar API (Selecionados)')
                         ->icon('heroicon-o-magnifying-glass')

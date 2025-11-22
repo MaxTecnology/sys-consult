@@ -5,10 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Traits\LogsModelChanges;
 
 class Certificado extends Model
 {
-    use HasFactory;
+    use HasFactory, LogsModelChanges;
 
     protected $fillable = [
         'nome',
@@ -17,12 +18,14 @@ class Certificado extends Model
         'token_api',
         'chave_criptografia',
         'status',
+        'ativo',
         'validade',
         'observacoes',
     ];
 
     protected $casts = [
         'validade' => 'date',
+        'ativo' => 'boolean',
     ];
 
     protected $hidden = [
@@ -69,5 +72,10 @@ class Certificado extends Model
     public function getDiasParaVencerAttribute(): ?int
     {
         return $this->validade ? now()->diffInDays($this->validade, false) : null;
+    }
+
+    public function getLoggableAttributes(): array
+    {
+        return ['status', 'ativo', 'validade', 'nome'];
     }
 }

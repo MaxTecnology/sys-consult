@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class AutomacaoExecucao extends Model
 {
@@ -24,6 +25,7 @@ class AutomacaoExecucao extends Model
         'tentativa_numero',
         'job_id',
         'queue_name',
+        'request_id',
         'custo_execucao',
         'metricas_extras',
     ];
@@ -45,6 +47,11 @@ class AutomacaoExecucao extends Model
     public function consultaApi(): BelongsTo
     {
         return $this->belongsTo(ConsultaApi::class);
+    }
+
+    public function dteMessages(): HasMany
+    {
+        return $this->hasMany(DteMessage::class);
     }
 
     // Relacionamentos indiretos através de empresaAutomacao
