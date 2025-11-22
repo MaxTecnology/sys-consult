@@ -76,13 +76,26 @@ class DteAlertCriticalCommand extends Command
             ->map(fn ($msg) => $msg->mailbox?->empresa?->email)
             ->filter();
 
-        $userEmails = User::where('ativo', true)
+        // Usuários delegados às empresas das mensagens
+        $empresaIds = collect($mensagens)
+            ->map(fn ($msg) => $msg->mailbox?->empresa_id)
+            ->filter()
+            ->unique();
+
+        $delegados = User::where('ativo', true)
+            ->whereNotNull('email')
+            ->whereHas('empresas', fn ($q) => $q->whereIn('empresas.id', $empresaIds))
+            ->pluck('email');
+
+        // Admin (role=admin) recebe sempre
+        $admins = User::where('role', 'admin')
             ->whereNotNull('email')
             ->pluck('email');
 
         return $envEmails
             ->merge($empresaEmails)
-            ->merge($userEmails)
+            ->merge($delegados)
+            ->merge($admins)
             ->unique()
             ->values()
             ->all();

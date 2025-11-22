@@ -59,19 +59,20 @@ class CertificadosAlertCommand extends Command
             ->filter();
 
         // e-mails das empresas associadas a certificações ativas
-        $empresas = Certificado::ativos()
-            ->with(['automacoes.empresa'])
-            ->get()
-            ->pluck('automacoes.*.empresa.email')
-            ->flatten()
-            ->filter();
+        $certs = Certificado::ativos()->with(['automacoes.empresa'])->get();
+        $empresas = $certs->pluck('automacoes.*.empresa.email')->flatten()->filter();
 
-        // e-mails de usuários ativos
-        $usuarios = User::where('ativo', true)
+        // usuários delegados às empresas dos certificados
+        $empresaIds = $certs->pluck('automacoes.*.empresa_id')->flatten()->filter()->unique();
+
+        $delegados = User::where('ativo', true)
             ->whereNotNull('email')
+            ->whereHas('empresas', fn ($q) => $q->whereIn('empresas.id', $empresaIds))
             ->pluck('email');
 
-        return $env->merge($empresas)->merge($usuarios)
+        $admins = User::where('role', 'admin')->whereNotNull('email')->pluck('email');
+
+        return $env->merge($empresas)->merge($delegados)->merge($admins)
             ->unique()
             ->values()
             ->all();

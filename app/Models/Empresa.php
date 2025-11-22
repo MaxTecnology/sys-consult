@@ -6,10 +6,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Traits\LogsModelChanges;
+use App\Traits\EmpresaScoped;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Empresa extends Model
 {
-    use HasFactory, LogsModelChanges;
+    use HasFactory, LogsModelChanges, EmpresaScoped;
 
     protected $fillable = [
         'razao_social',
@@ -101,5 +103,10 @@ class Empresa extends Model
     public function getLoggableAttributes(): array
     {
         return ['razao_social', 'cnpj', 'status', 'ativo', 'ultima_consulta_api'];
+    }
+
+    public function users(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'empresa_user')->withPivot('role')->withTimestamps();
     }
 }

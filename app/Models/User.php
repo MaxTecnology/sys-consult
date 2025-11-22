@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use App\Traits\LogsModelChanges;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class User extends Authenticatable
 {
@@ -65,5 +66,10 @@ class User extends Authenticatable
     public function getLoggableAttributes(): array
     {
         return ['name', 'email', 'role', 'ativo'];
+    }
+
+    public function empresas(): BelongsToMany
+    {
+        return $this->belongsToMany(Empresa::class, 'empresa_user')->withPivot('role')->withTimestamps();
     }
 }

@@ -8,10 +8,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Carbon\Carbon;
 use App\Traits\LogsModelChanges;
+use App\Traits\EmpresaScoped;
 
 class EmpresaAutomacao extends Model
 {
-    use HasFactory, LogsModelChanges;
+    use HasFactory, LogsModelChanges, EmpresaScoped;
 
     protected $table = 'empresa_automacao';
 

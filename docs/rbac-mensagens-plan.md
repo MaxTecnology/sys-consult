@@ -57,13 +57,10 @@
 - [ ] Log de visualização em mensagens DTE.
 - [ ] Ajustar widgets/estats para filtrar por escopo.
 
-## Decisões Abertas
-- Deve haver papel por empresa (owner/editor/viewer) ou basta vincular? (proposto: incluir `role` na pivot).
-Seria bom ter
-- Admin vê tudo sempre? (proposto: sim, ignora scopes).
-Sim
-- Notificações: admins recebem cópia sempre ou só empresas delegadas?
-Admin fica ciente de tudo.
+## Decisões
+- Papéis por empresa: usar owner/editor/viewer na pivot (donos + escritório).
+- Admin vê tudo e recebe cópia de alertas (ignora scopes).
+- Notificações: enviar para usuários delegados das empresas envolvidas + admin; ajustar também certificados/falhas para seguir esse critério.
 
 ---
 Última revisão: 2025-11-22.
