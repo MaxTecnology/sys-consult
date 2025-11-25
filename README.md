@@ -1,61 +1,67 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# SYS Consult – Painel Filament
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Painel Laravel 12 + Filament para gestão de empresas, certificados, consultas InfoSimples (DTE/caixa postal SEFAZ/AL) e automações agendadas.
 
-## About Laravel
+## Stack
+- PHP 8.4, Laravel 12, Filament
+- Docker / Sail (MySQL, Redis, Horizon, Scheduler)
+- Mail via SMTP (configure no `.env`)
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Pré-requisitos
+- Docker + Docker Compose
+- `./vendor/bin/sail` disponível (ou `php artisan sail:install` já aplicado)
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Subindo local
+```bash
+cp .env.example .env
+./vendor/bin/sail up -d
+./vendor/bin/sail composer install
+./vendor/bin/sail artisan key:generate
+./vendor/bin/sail artisan migrate
+./vendor/bin/sail artisan db:seed --class=AdminUserSeeder
+```
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+Painel: `http://localhost/app`  
+Login inicial (seed): `admin@example.com` / `password`
 
-## Learning Laravel
+## Configuração obrigatória (.env)
+- **DB**: já configurado para o MySQL do Sail.
+- **Mail**: `MAIL_MAILER=smtp`, host/port/user/pass do provedor.
+- **InfoSimples**: `INFOSIMPLES_TOKEN`, `INFOSIMPLES_URL` se aplicável.
+- **Criptografia**: `APP_KEY` (gerado), chave AES usada nas cargas de certificado já configurada no app.
+- **Alertas**: pode definir e-mails extras em `DTE_ALERT_EMAILS` (separados por vírgula).
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## RBAC por empresa
+- Papéis no pivot `empresa_user`: `owner` | `editor` | `viewer`.
+- Admin ignora escopo e vê tudo.
+- Vincule usuários às empresas:
+```bash
+./vendor/bin/sail artisan empresa:atribuir-usuario user@example.com --empresa=ID --role=owner
+```
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+## Ações e comandos úteis
+- Verificar/rodar automações prontas (respeita próxima execução):
+```bash
+./vendor/bin/sail artisan automacao:executar --force
+```
+- Alertar certificados a vencer (e-mail para empresas delegadas + admin):
+```bash
+./vendor/bin/sail artisan certificados:alerta-vencimento --dias=30
+```
+- Reset de filas/monitoramento: Horizon já sobe em container dedicado; veja status:
+```bash
+./vendor/bin/sail artisan horizon:status
+```
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## Notas de uso
+- Navegação: `/app` (Filament). Menu “Consultas API” abre modal de detalhes ao clicar na linha.
+- Mensagens DTE registram visualização (usuário, horário, request_id).
+- Exclusões lógicas: usuários/empresas são inativados, não removidos.
 
-## Laravel Sponsors
+## Testes
+```bash
+./vendor/bin/sail test
+```
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
-
-### Premium Partners
-
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
-
-## Contributing
-
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## Licença
+MIT (base Laravel).
