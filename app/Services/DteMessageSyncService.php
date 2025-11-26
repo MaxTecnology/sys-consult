@@ -127,24 +127,48 @@ class DteMessageSyncService
 
     private function extrairMensagens($respostaData): array
     {
+        // Se vier string JSON, tenta decodificar
+        if (is_string($respostaData)) {
+            $decoded = json_decode($respostaData, true);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                $respostaData = $decoded;
+            }
+        }
+
         if (!is_array($respostaData)) {
             return [];
         }
 
+        // Flatten recursivamente para suportar estruturas novas (mensagens|messages|data|items)
         $colecao = [];
+        $pilha = [$respostaData];
 
-        foreach ($respostaData as $item) {
+        while (!empty($pilha)) {
+            $item = array_pop($pilha);
             if (!is_array($item)) {
                 continue;
             }
 
-            if (isset($item['mensagens']) && is_array($item['mensagens'])) {
-                foreach ($item['mensagens'] as $mensagem) {
-                    if (is_array($mensagem)) {
-                        $colecao[] = $mensagem;
-                    }
+            // Se for uma lista numérica (array de itens), empilha cada um
+            if (array_is_list($item)) {
+                foreach (array_reverse($item) as $filho) {
+                    $pilha[] = $filho;
                 }
-            } else {
+                continue;
+            }
+
+            // Se tiver um agrupador conhecido, empilha os filhos
+            foreach (['mensagens', 'messages', 'data', 'items', 'itens'] as $key) {
+                if (isset($item[$key]) && is_array($item[$key])) {
+                    foreach (array_reverse($item[$key]) as $filho) {
+                        $pilha[] = $filho;
+                    }
+                    // não retorna ainda, pois o próprio item pode ser uma mensagem
+                }
+            }
+
+            // Heurística mínima para identificar uma mensagem
+            if (isset($item['assunto']) || isset($item['remetente']) || isset($item['uid']) || isset($item['id']) || isset($item['codigo'])) {
                 $colecao[] = $item;
             }
         }

@@ -16,6 +16,8 @@ use Filament\Forms;
 use Filament\Infolists\Infolist;
 use Filament\Infolists\Components\Section as InfoSection;
 use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Components\RepeatableEntry;
+use Illuminate\Support\Arr;
 
 class DteMessageResource extends Resource
 {
@@ -181,6 +183,40 @@ class DteMessageResource extends Resource
                     ->schema([
                         TextEntry::make('resumo')->label('Resumo')->columnSpanFull(),
                         TextEntry::make('conteudo_texto')->label('Conteúdo')->columnSpanFull()->default('')->visible(fn ($record) => filled($record->conteudo_texto)),
+                    ]),
+                InfoSection::make('Auditoria')
+                    ->columns(3)
+                    ->schema([
+                        TextEntry::make('visualizado_por')
+                            ->label('Primeiro visualizador')
+                            ->formatStateUsing(function ($state, $record) {
+                                if ($state) {
+                                    return User::find($state)?->name ?? "User #{$state}";
+                                }
+                                // Fallback: primeiro evento de visualização
+                                $evento = $record?->eventos()?->where('tipo_evento', 'visualizado')->oldest('registrado_em')->first();
+                                return $evento?->user?->name ?? '-';
+                            }),
+                        TextEntry::make('primeira_visualizacao_em')
+                            ->label('Primeira visualização')
+                            ->dateTime('d/m/Y H:i'),
+                        TextEntry::make('ultima_interacao_em')
+                            ->label('Última interação')
+                            ->dateTime('d/m/Y H:i'),
+                        RepeatableEntry::make('eventos')
+                            ->label('Histórico de ações')
+                            ->schema([
+                                TextEntry::make('registrado_em')->label('Quando')->dateTime('d/m/Y H:i'),
+                                TextEntry::make('user.name')->label('Usuário'),
+                                TextEntry::make('tipo_evento')->label('Evento'),
+                                TextEntry::make('descricao')->label('Descrição')->columnSpanFull(),
+                                TextEntry::make('payload')
+                                    ->label('Dados')
+                                    ->columnSpanFull()
+                                    ->formatStateUsing(fn ($state) => $state ? json_encode($state, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) : '-'),
+                            ])
+                            ->columnSpanFull()
+                            ->columns(3),
                     ]),
             ]);
     }

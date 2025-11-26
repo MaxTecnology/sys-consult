@@ -11,19 +11,23 @@ class ViewDteMessage extends ViewRecord
 {
     protected static string $resource = DteMessageResource::class;
 
-    protected function mutateFormDataBeforeFill(array $data): array
+    public function mount($record): void
     {
-        $record = $this->record;
+        parent::mount($record);
+
+        $record = $this->getRecord();
         $user = Auth::user();
 
-        if ($user) {
-            $record->update([
+        // Apenas na primeira visualização registramos quem viu e criamos evento.
+        if ($user && !$record->visualizado_por) {
+            $record->fill([
                 'visualizado_por' => $user->id,
                 'visualizado_em' => now(),
-                'primeira_visualizacao_em' => $record->primeira_visualizacao_em ?? now(),
+                'primeira_visualizacao_em' => now(),
                 'ultima_interacao_em' => now(),
                 'status_interno' => $record->status_interno === 'novo' ? 'em_andamento' : $record->status_interno,
             ]);
+            $record->save();
 
             DteMessageEvent::create([
                 'dte_message_id' => $record->id,
@@ -36,7 +40,5 @@ class ViewDteMessage extends ViewRecord
                 'registrado_em' => now(),
             ]);
         }
-
-        return parent::mutateFormDataBeforeFill($data);
     }
 }

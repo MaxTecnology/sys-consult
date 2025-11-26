@@ -44,11 +44,18 @@ class InfoSimplesService
             $responseData = $response->json();
 
             if ($response->successful() && isset($responseData['code'])) {
+                // Alguns retornos podem não vir em `data`, então guardamos um fallback
+                $data = $responseData['data']
+                    ?? $responseData['mensagens']
+                    ?? $responseData['messages']
+                    ?? $responseData['items']
+                    ?? $responseData;
+
                 return [
                     'sucesso' => $responseData['code'] == 200,
                     'response_code' => $responseData['code'],
                     'code_message' => $responseData['code_message'] ?? null,
-                    'data' => $responseData['data'] ?? null,
+                    'data' => $data,
                     'header' => $responseData['header'] ?? null,
                     'site_receipts' => $responseData['site_receipts'] ?? [],
                     'errors' => $responseData['errors'] ?? [],

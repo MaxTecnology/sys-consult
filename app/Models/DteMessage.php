@@ -76,6 +76,6 @@ class DteMessage extends Model
 
     public function eventos(): HasMany
     {
-        return $this->hasMany(DteMessageEvent::class);
+        return $this->hasMany(DteMessageEvent::class)->latest('registrado_em');
     }
 }

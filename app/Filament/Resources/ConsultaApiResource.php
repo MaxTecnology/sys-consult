@@ -272,7 +272,6 @@ class ConsultaApiResource extends Resource
         return [
             'index' => Pages\ListConsultaApis::route('/'),
             'create' => Pages\CreateConsultaApi::route('/create'),
-            'view' => Pages\ViewConsultaApi::route('/{record}'),
         ];
     }
 
@@ -283,38 +282,54 @@ class ConsultaApiResource extends Resource
 
     public static function infolist(\Filament\Infolists\Infolist $infolist): \Filament\Infolists\Infolist
     {
+        $fmt = fn ($state) => is_array($state)
+            ? json_encode($state, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)
+            : (is_bool($state) ? ($state ? 'Sim' : 'Não') : (string) $state);
+
         return $infolist
             ->schema([
                 \Filament\Infolists\Components\Section::make('Dados da Consulta')
                     ->schema([
-                        \Filament\Infolists\Components\TextEntry::make('empresa.razao_social')->label('Empresa'),
-                        \Filament\Infolists\Components\TextEntry::make('empresa.inscricao_estadual')->label('IE'),
-                        \Filament\Infolists\Components\TextEntry::make('certificado.nome')->label('Certificado'),
-                        \Filament\Infolists\Components\TextEntry::make('tipo_consulta')->label('Tipo'),
+                        \Filament\Infolists\Components\TextEntry::make('empresa.razao_social')->label('Empresa')->formatStateUsing($fmt),
+                        \Filament\Infolists\Components\TextEntry::make('empresa.inscricao_estadual')->label('IE')->formatStateUsing($fmt),
+                        \Filament\Infolists\Components\TextEntry::make('certificado.nome')->label('Certificado')->formatStateUsing($fmt),
+                        \Filament\Infolists\Components\TextEntry::make('tipo_consulta')->label('Tipo')->formatStateUsing($fmt),
                         \Filament\Infolists\Components\TextEntry::make('sucesso')->label('Status')->badge()->color(fn ($state) => $state ? 'success' : 'danger')->formatStateUsing(fn ($state) => $state ? 'Sucesso' : 'Erro'),
-                        \Filament\Infolists\Components\TextEntry::make('response_code')->label('Código'),
-                        \Filament\Infolists\Components\TextEntry::make('code_message')->label('Mensagem'),
-                        \Filament\Infolists\Components\TextEntry::make('preco')->label('Preço')->money('BRL'),
-                        \Filament\Infolists\Components\TextEntry::make('tempo_resposta_ms')->label('Tempo (ms)')->formatStateUsing(fn ($state) => $state ? number_format($state).'ms' : '-'),
-                        \Filament\Infolists\Components\TextEntry::make('consultado_em')->label('Consultado em')->dateTime('d/m/Y H:i'),
-                        \Filament\Infolists\Components\TextEntry::make('request_id')->label('Request ID')->copyable(),
-                        \Filament\Infolists\Components\TextEntry::make('automacaoExecucao.id')->label('Execução #'),
+                        \Filament\Infolists\Components\TextEntry::make('response_code')
+                            ->label('Código')
+                            ->formatStateUsing($fmt),
+                        \Filament\Infolists\Components\TextEntry::make('code_message')
+                            ->label('Mensagem')
+                            ->formatStateUsing($fmt),
+                        \Filament\Infolists\Components\TextEntry::make('preco')
+                            ->label('Preço')
+                            ->money('BRL')
+                            ->formatStateUsing($fmt),
+                        \Filament\Infolists\Components\TextEntry::make('tempo_resposta_ms')
+                            ->label('Tempo (ms)')
+                            ->formatStateUsing(fn ($state) => is_array($state) ? json_encode($state, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) : ($state ? number_format($state).'ms' : '-')),
+                        \Filament\Infolists\Components\TextEntry::make('consultado_em')->label('Consultado em')->dateTime('d/m/Y H:i')->formatStateUsing($fmt),
+                        \Filament\Infolists\Components\TextEntry::make('request_id')->label('Request ID')->copyable()->formatStateUsing($fmt),
+                        \Filament\Infolists\Components\TextEntry::make('automacaoExecucao.id')->label('Execução #')->formatStateUsing($fmt),
                     ])->columns(3),
                 \Filament\Infolists\Components\Section::make('Payload')
                     ->schema([
-                        \Filament\Infolists\Components\TextEntry::make('parametro_consulta')->label('Parâmetro'),
+                        \Filament\Infolists\Components\TextEntry::make('parametro_consulta')
+                            ->label('Parâmetro')
+                            ->state(fn ($record) => $record?->parametro_consulta ? json_encode($record->parametro_consulta, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) : '-')
+                            ->columnSpanFull(),
                         \Filament\Infolists\Components\TextEntry::make('resposta_header')
                             ->label('Header')
-                            ->columnSpanFull()
-                            ->formatStateUsing(fn ($state) => $state ? json_encode($state, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) : '-'),
+                            ->state(fn ($record) => $record?->resposta_header ? json_encode($record->resposta_header, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) : '-')
+                            ->columnSpanFull(),
                         \Filament\Infolists\Components\TextEntry::make('resposta_data')
                             ->label('Data')
-                            ->columnSpanFull()
-                            ->formatStateUsing(fn ($state) => $state ? json_encode($state, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) : '-'),
+                            ->state(fn ($record) => $record?->resposta_data ? json_encode($record->resposta_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) : '-')
+                            ->columnSpanFull(),
                         \Filament\Infolists\Components\TextEntry::make('errors')
                             ->label('Errors')
-                            ->columnSpanFull()
-                            ->formatStateUsing(fn ($state) => $state ? json_encode($state, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) : '-'),
+                            ->state(fn ($record) => $record?->errors ? json_encode($record->errors, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) : '-')
+                            ->columnSpanFull(),
                     ])->columns(2),
             ]);
     }
