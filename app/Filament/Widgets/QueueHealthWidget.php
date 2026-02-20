@@ -9,6 +9,11 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
 
 class QueueHealthWidget extends BaseWidget
 {
+    public static function canView(): bool
+    {
+        return auth()->user()?->isAdmin() ?? false;
+    }
+
     protected function getStats(): array
     {
         $ultimoIntervalo = now()->subHour();

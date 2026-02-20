@@ -404,12 +404,12 @@ class EmpresaAutomacaoResource extends Resource
     public static function shouldRegisterNavigation(): bool
     {
         $user = auth()->user();
-        return $user && ($user->isAdmin() || $user->empresas()->exists());
+        return $user && $user->isAdmin();
     }
 
     public static function canViewAny(): bool
     {
         $user = auth()->user();
-        return $user && ($user->isAdmin() || $user->empresas()->exists());
+        return $user && $user->isAdmin();
     }
 }

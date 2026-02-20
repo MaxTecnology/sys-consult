@@ -10,6 +10,11 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
 
 class DteOpsWidget extends BaseWidget
 {
+    public static function canView(): bool
+    {
+        return auth()->user()?->isAdmin() ?? false;
+    }
+
     protected function getStats(): array
     {
         $mensagensCriticas = DteMessage::where('requere_atencao', true)->count();

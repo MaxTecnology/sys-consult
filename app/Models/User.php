@@ -8,8 +8,10 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use App\Traits\LogsModelChanges;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
 
-class User extends Authenticatable
+class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable, LogsModelChanges;
@@ -70,7 +72,18 @@ class User extends Authenticatable
 
     public function empresas(): BelongsToMany
     {
-        return $this->belongsToMany(Empresa::class, 'empresa_user')->withPivot('role')->withTimestamps();
+        // Usamos withoutGlobalScopes para não aplicar o filtro EmpresaScoped aqui,
+        // pois precisamos enxergar os vínculos mesmo antes do login ou para outros usuários.
+        return $this->belongsToMany(Empresa::class, 'empresa_user')
+            ->withoutGlobalScopes()
+            ->withPivot('role')
+            ->withTimestamps();
+    }
+
+    public function canAccessPanel(Panel $panel): bool
+    {
+        // Admin vê tudo; usuários comuns precisam estar ativos e vinculados a alguma empresa.
+        return $this->isActive() && ($this->isAdmin() || $this->empresas()->exists());
     }
 
     public function empresaIds(): array

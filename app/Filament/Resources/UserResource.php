@@ -29,10 +29,10 @@ class UserResource extends Resource
                     ->required()
                     ->maxLength(255),
                 Forms\Components\Select::make('role')
-                    ->label('Perfil')
+                    ->label('Perfil do usuário')
                     ->options([
-                        'admin' => 'Admin',
-                        'user' => 'Usuário',
+                        'admin' => 'Admin (acesso total)',
+                        'user' => 'Usuário (restrito às empresas atribuídas)',
                     ])
                     ->default('user')
                     ->required(),
@@ -62,7 +62,8 @@ class UserResource extends Resource
                     ->colors([
                         'warning' => 'user',
                         'primary' => 'admin',
-                    ]),
+                    ])
+                    ->formatStateUsing(fn ($state) => $state === 'admin' ? 'Admin' : 'Usuário'),
                 Tables\Columns\BadgeColumn::make('ativo')
                     ->label('Status')
                     ->getStateUsing(fn (User $record) => $record->ativo ? 'Ativo' : 'Inativo')
@@ -113,5 +114,15 @@ class UserResource extends Resource
             'create' => Pages\CreateUser::route('/create'),
             'edit' => Pages\EditUser::route('/{record}/edit'),
         ];
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return auth()->user()?->isAdmin() ?? false;
+    }
+
+    public static function canViewAny(): bool
+    {
+        return auth()->user()?->isAdmin() ?? false;
     }
 }

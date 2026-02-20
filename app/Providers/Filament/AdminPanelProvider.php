@@ -43,6 +43,9 @@ class AdminPanelProvider extends PanelProvider
                 \App\Filament\Widgets\DteAlertsWidget::class,
                 \App\Filament\Widgets\QueueHealthWidget::class,
                 \App\Filament\Widgets\DteOpsWidget::class,
+                \App\Filament\Widgets\UserMessagesStatsWidget::class,
+                \App\Filament\Widgets\UserMessagesStatusChart::class,
+                \App\Filament\Widgets\UserMessagesTrendChart::class,
                 //Widgets\AccountWidget::class,
                 //Widgets\FilamentInfoWidget::class,
             ])

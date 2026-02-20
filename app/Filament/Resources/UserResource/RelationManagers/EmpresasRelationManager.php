@@ -13,18 +13,13 @@ use Filament\Tables\Actions\DetachAction;
 class EmpresasRelationManager extends RelationManager
 {
     protected static string $relationship = 'empresas';
+    protected static ?string $recordTitleAttribute = 'razao_social';
     protected static ?string $title = 'Empresas vinculadas';
 
     public function form(Forms\Form $form): Forms\Form
     {
         return $form
             ->schema([
-                Forms\Components\Select::make('empresas')
-                    ->label('Empresa')
-                    ->relationship('empresas', 'razao_social')
-                    ->searchable()
-                    ->preload()
-                    ->required(),
                 Forms\Components\Select::make('role')
                     ->label('Perfil')
                     ->options([
@@ -54,22 +49,13 @@ class EmpresasRelationManager extends RelationManager
             ->headerActions([
                 AttachAction::make()
                     ->label('Vincular')
-                    ->form([
-                        Forms\Components\Select::make('recordId')
+                    ->preloadRecordSelect()
+                    ->visible(fn ($livewire) => $livewire->getOwnerRecord()->role !== 'admin')
+                    ->form(fn (AttachAction $action) => [
+                        $action->getRecordSelect()
                             ->label('Empresa')
-                            ->relationship('empresas', 'razao_social')
                             ->searchable()
-                            ->preload()
-                            ->required(),
-                        Forms\Components\Select::make('role')
-                            ->label('Perfil')
-                            ->options([
-                                'owner' => 'Owner',
-                                'editor' => 'Editor',
-                                'viewer' => 'Viewer',
-                            ])
-                            ->default('viewer')
-                            ->required(),
+                            ->preload(),
                     ]),
             ])
             ->actions([
@@ -79,13 +65,14 @@ class EmpresasRelationManager extends RelationManager
                         Forms\Components\Select::make('role')
                             ->label('Perfil')
                             ->options([
-                                'owner' => 'Owner',
-                                'editor' => 'Editor',
-                                'viewer' => 'Viewer',
+                                'viewer' => 'Leitor',
                             ])
+                            ->default('viewer')
                             ->required(),
                     ]),
-                DetachAction::make()->label('Remover'),
+                DetachAction::make()
+                    ->label('Remover')
+                    ->visible(fn ($livewire) => $livewire->getOwnerRecord()->role !== 'admin'),
             ]);
     }
 

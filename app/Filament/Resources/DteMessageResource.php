@@ -61,16 +61,6 @@ class DteMessageResource extends Resource
                     ->label('Envio')
                     ->dateTime('d/m/Y H:i')
                     ->sortable(),
-                TextColumn::make('disponivel_ate')
-                    ->label('Disponível até')
-                    ->dateTime('d/m/Y')
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('message_uid')
-                    ->label('UID')
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->copyable()
-                    ->limit(20),
             ])
             ->filters([
                 SelectFilter::make('lida_sefaz')
@@ -114,16 +104,17 @@ class DteMessageResource extends Resource
                             ->label('Responsável')
                             ->options(User::where('ativo', true)->pluck('name', 'id'))
                             ->searchable()
-                            ->preload(),
+                            ->preload()
+                            ->default(fn () => auth()->id()),
                         Forms\Components\Textarea::make('observacao')
                             ->label('Observação')
-                            ->rows(3),
+                            ->rows(3)
+                            ->required()
+                            ->helperText('Obrigatório: descreva o que foi tratado ou decidido.'),
                     ])
                     ->action(function (DteMessage $record, array $data) {
                         $record->status_interno = $data['status_interno'];
-                        if (!empty($data['responsavel_id'])) {
-                            $record->responsavel_id = $data['responsavel_id'];
-                        }
+                        $record->responsavel_id = $data['responsavel_id'] ?? auth()->id();
 
                         // Ajusta flag de atenção
                         $record->requere_atencao = !in_array($record->status_interno, ['concluido', 'ignorado']);
@@ -140,6 +131,7 @@ class DteMessageResource extends Resource
                                 'status_interno' => $record->status_interno,
                                 'responsavel_id' => $record->responsavel_id,
                                 'observacao' => $data['observacao'] ?? null,
+                                'atualizado_por' => auth()->id(),
                             ],
                             'registrado_em' => now(),
                         ]);
@@ -210,10 +202,10 @@ class DteMessageResource extends Resource
                                 TextEntry::make('user.name')->label('Usuário'),
                                 TextEntry::make('tipo_evento')->label('Evento'),
                                 TextEntry::make('descricao')->label('Descrição')->columnSpanFull(),
-                                TextEntry::make('payload')
-                                    ->label('Dados')
+                                TextEntry::make('payload.observacao')
+                                    ->label('Observação')
                                     ->columnSpanFull()
-                                    ->formatStateUsing(fn ($state) => $state ? json_encode($state, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) : '-'),
+                                    ->formatStateUsing(fn ($state) => $state ?: '-'),
                             ])
                             ->columnSpanFull()
                             ->columns(3),

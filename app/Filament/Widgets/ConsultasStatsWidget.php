@@ -12,6 +12,11 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
 
 class ConsultasStatsWidget extends BaseWidget
 {
+    public static function canView(): bool
+    {
+        return auth()->user()?->isAdmin() ?? false;
+    }
+
     protected function getStats(): array
     {
         $consultasHoje = ConsultaApi::whereDate('consultado_em', today())->count();
