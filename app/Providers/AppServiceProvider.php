@@ -22,6 +22,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        if (config('app.env') === 'production') {
+            \Illuminate\Support\Facades\URL::forceScheme('https');
+        }
+
         Gate::define('viewUserActivityLogs', fn ($user) => $user?->role === 'admin');
         Gate::define('viewAutomacaoExecucoes', fn ($user) => $user?->role === 'admin');
 
