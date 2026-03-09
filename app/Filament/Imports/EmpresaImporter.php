@@ -33,7 +33,8 @@ class EmpresaImporter extends Importer
                     return preg_replace('/[^0-9]/', '', $state);
                 }),
             ImportColumn::make('inscricao_estadual')
-                ->rules(['max:30'])
+                ->requiredMapping()
+                ->rules(['required', 'max:30'])
                 ->label('Inscrição Estadual'),
             ImportColumn::make('inscricao_municipal')
                 ->rules(['max:30'])
