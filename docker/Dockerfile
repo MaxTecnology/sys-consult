@@ -53,6 +53,10 @@ RUN npm install \
     && npm run build \
     && rm -rf node_modules
 
+# Otimizar Filament e publicar assets
+RUN php artisan filament:optimize \
+    && php artisan vendor:publish --tag=filament-assets --force
+
 # Ajustar permissões para os diretórios do Nginx e do Laravel
 # Alpine normalmente roda o nginx com dono nginx ou www-data, usamos www-data generalizado.
 RUN mkdir -p /run/nginx \

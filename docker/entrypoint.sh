@@ -11,8 +11,10 @@ if [ "$1" = "/usr/bin/supervisord" ]; then
     php artisan view:cache
     php artisan event:cache
     
-    # Filament cache
+    # Filament cache e assets
     php artisan filament:cache-components || true
+    php artisan filament:optimize || true
+    php artisan vendor:publish --tag=filament-assets --force || true
 
     echo "Running migrations..."
     # Roda as migrações forçadamente em produção (requer confirmação automática --force)
