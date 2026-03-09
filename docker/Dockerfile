@@ -20,8 +20,8 @@ RUN apk add --no-cache \
     linux-headers
 
 # Instalar extensões PHP necessárias para Laravel e Filament
-RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd intl \
-    && apk add --no-cache pcre-dev $PHPIZE_DEPS \
+RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd intl zip \
+    && apk add --no-cache pcre-dev $PHPIZE_DEPS libzip-dev \
     && pecl install redis \
     && docker-php-ext-enable redis \
     && apk del pcre-dev $PHPIZE_DEPS
@@ -40,6 +40,9 @@ RUN chmod +x /usr/local/bin/entrypoint.sh
 
 # Copiar arquivos do projeto
 COPY . .
+
+# Fix git dubious ownership error in Dokploy
+RUN git config --global --add safe.directory /var/www/html
 
 # Instalar dependências do PHP (sem pacotes de dev) para produção
 RUN composer install --optimize-autoloader --no-dev --no-interaction
