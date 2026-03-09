@@ -20,8 +20,9 @@ RUN apk add --no-cache \
     linux-headers
 
 # Instalar extensões PHP necessárias para Laravel e Filament
-RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd intl zip \
-    && apk add --no-cache pcre-dev $PHPIZE_DEPS libzip-dev \
+RUN apk add --no-cache libzip-dev \
+    && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd intl zip \
+    && apk add --no-cache pcre-dev $PHPIZE_DEPS \
     && pecl install redis \
     && docker-php-ext-enable redis \
     && apk del pcre-dev $PHPIZE_DEPS
