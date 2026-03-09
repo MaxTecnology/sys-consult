@@ -14,6 +14,10 @@ class ListEmpresas extends ListRecords
     {
         return [
             Actions\CreateAction::make(),
+            Actions\ImportAction::make()
+                ->importer(\App\Filament\Imports\EmpresaImporter::class)
+                ->color('success')
+                ->icon('heroicon-o-arrow-up-tray'),
         ];
     }
 }
