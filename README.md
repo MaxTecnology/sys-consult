@@ -63,5 +63,11 @@ Login inicial (seed): `admin@example.com` / `password`
 ./vendor/bin/sail test
 ```
 
+## Documentação Completa (Análise)
+Para detalhes aprofundados sobre o funcionamento e estrutura do projeto para fins de manutenção e evolução, consulte a pasta `/docs`:
+- [Arquitetura e Estrutura do Projeto (docs/architecture.md)](docs/architecture.md)
+- [Banco de Dados e Relacionamentos (docs/database.md)](docs/database.md)
+- [Funcionalidades Principais Integradas (docs/features.md)](docs/features.md)
+
 ## Licença
 MIT (base Laravel).

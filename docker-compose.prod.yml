@@ -1,0 +1,88 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    restart: unless-stopped
+    # Nota: No Dokploy o Traefik fará o routing para esta porta automaticamente.
+    # Expondo a porta para caso haja testes manuais fora do Dokploy.
+    ports:
+      - "8000:80"
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+    env_file:
+      - .env
+    volumes:
+      # Volume compartilhado para que upload/storage sejam vistos por app e workers
+      - storage_data:/var/www/html/storage
+    networks:
+      - dokploy-network
+    depends_on:
+      - db
+      - redis
+
+  worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    # Sobrescreve o CMD padrão do Dockerfile para rodar as filas ao invez de webserver
+    command: php artisan horizon
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - storage_data:/var/www/html/storage
+    networks:
+      - dokploy-network
+    depends_on:
+      - app
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    # Roda as automações (schedule) continuamente
+    command: php artisan schedule:work
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - storage_data:/var/www/html/storage
+    networks:
+      - dokploy-network
+    depends_on:
+      - app
+
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    # Use as variaveis de ambiente definidas no .env do Dokploy
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-secret}
+      MYSQL_DATABASE: ${DB_DATABASE:-sys_consult}
+      MYSQL_USER: ${DB_USERNAME:-sys_client}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-secret}
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - dokploy-network
+
+  redis:
+    image: redis:alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    networks:
+      - dokploy-network
+
+volumes:
+  db_data:
+  redis_data:
+  storage_data:
+
+networks:
+  dokploy-network:
+    driver: bridge
