@@ -6,10 +6,9 @@ services:
       context: .
       dockerfile: docker/Dockerfile
     restart: unless-stopped
-    # Nota: No Dokploy o Traefik fará o routing para esta porta automaticamente.
-    # Expondo a porta para caso haja testes manuais fora do Dokploy.
-    ports:
-      - "8000:80"
+    # A porta 80 é exposta internamente. O Dokploy/Traefik cuidará do roteamento.
+    # ports:
+    #   - "8000:80"
     environment:
       - APP_ENV=production
       - APP_DEBUG=false
@@ -23,11 +22,8 @@ services:
     depends_on:
       - db
       - redis
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.sysconsult-app.rule=Host(`consult.g2asolucoescontabeis.com.br`)"
-      - "traefik.http.routers.sysconsult-app.entrypoints=web,websecure"
-      - "traefik.http.services.sysconsult-app.loadbalancer.server.port=80"
+    # As labels do Traefik devem ser preenchidas via aba "Domains" no Dokploy,
+    # para evitar conflitos de rota ou duplicidade de domínios.
 
   worker:
     build:
