@@ -19,6 +19,11 @@ if [ "$1" = "/usr/bin/supervisord" ]; then
     echo "Running migrations..."
     # Roda as migrações forçadamente em produção (requer confirmação automática --force)
     php artisan migrate --force
+
+    echo "Fixing storage permissions for uploaded files..."
+    # Garante que o volume montado pelo Dokploy seja sempre "dono" do nginx/php-fpm
+    chown -R www-data:www-data /var/www/html/storage
+    chmod -R 775 /var/www/html/storage
 fi
 
 # Executa o comando passado no CMD (seja o supervisor, horizon ou scheduler)
